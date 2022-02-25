@@ -6,6 +6,7 @@
 #include <SDL_vulkan.h>
 #include <string>
 #include <cassert>
+#include <vector>
 
 namespace SparEngine {
 	class Window {
@@ -14,7 +15,9 @@ namespace SparEngine {
 		int32_t m_iWidth, m_iHeight;
 	public:
 		Window(int32_t _iWidth, int32_t _iHeight, std::string sWindowName);
+		void loop();
 		void getSurface(VkInstance pInstance, VkSurfaceKHR *pSurface);
+		std::vector<const char*> getRequiredExtensions();
 		~Window();
 	};
 }

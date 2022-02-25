@@ -1,6 +1,7 @@
 set( SDL_STATIC ON CACHE BOOL "" FORCE )
 set( SDL_SHARED OFF CACHE BOOL "" FORCE )
 add_subdirectory("thirdparty/SDL")
+add_subdirectory("thirdparty/vk-bootstrap")
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
@@ -10,8 +11,17 @@ add_library(
 	"Window/Window.cpp"
 )
 
+add_library(
+	SparEngine_Renderer
+	"Renderer/Renderer.h"
+	"Renderer/Renderer.cpp"
+)
+
 target_include_directories (SparEngine_Window PUBLIC ${VULKAN_INCLUDE_DIRS})
 target_link_libraries(SparEngine_Window PUBLIC SDL2main SDL2-static ${VULKAN_LIB_LIST})
+
+target_include_directories (SparEngine_Renderer PUBLIC ${VULKAN_INCLUDE_DIRS})
+target_link_libraries(SparEngine_Renderer PUBLIC SparEngine_Window ${VULKAN_LIB_LIST} Vulkan::Vulkan vk-bootstrap::vk-bootstrap)
 
 add_library(
 	SparEngine
@@ -19,4 +29,4 @@ add_library(
 	"SparEngine.cpp"
 )
 
-target_link_libraries(SparEngine PUBLIC SparEngine_Window)
+target_link_libraries(SparEngine PUBLIC SparEngine_Window SparEngine_Renderer)

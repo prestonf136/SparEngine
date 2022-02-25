@@ -6,7 +6,8 @@
 int main()
 {
 	auto gamewin = SparEngine::Window(640, 480, "My brand new app!");
-	SDL_Delay(3000);
+	auto renderer = SparEngine::Renderer(gamewin);
+	gamewin.loop();
 
 	return 0;
 }

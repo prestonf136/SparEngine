@@ -1,6 +1,4 @@
 #include "Window.h"
-#include "Window.h"
-#include "Window.h"
 
 SparEngine::Window::Window(int32_t _iWidth, int32_t _iHeight, std::string sWindowName) : m_iWidth{ _iWidth }, m_iHeight{ _iHeight }
 {
@@ -13,9 +11,34 @@ SparEngine::Window::Window(int32_t _iWidth, int32_t _iHeight, std::string sWindo
 	assert(m_pWindow != nullptr && "Failed to create SDL window!");
 }
 
+void SparEngine::Window::loop()
+{
+	while (true)
+	{
+		SDL_Event event;
+		if (SDL_PollEvent(&event))
+		{
+			if (event.type == SDL_QUIT)
+				break;
+		}
+	}
+}
+
 void SparEngine::Window::getSurface(VkInstance pInstance, VkSurfaceKHR* pSurface)
 {
 	assert(SDL_Vulkan_CreateSurface(m_pWindow, pInstance, pSurface) && "Failed cto create VKSurface");
+}
+
+std::vector<const char*> SparEngine::Window::getRequiredExtensions()
+{
+	uint32_t count;
+	assert(SDL_Vulkan_GetInstanceExtensions(m_pWindow, &count, nullptr) && "failed to query extensions");
+
+	std::vector<const char*> extensions;
+	extensions.resize(count);
+
+	assert(SDL_Vulkan_GetInstanceExtensions(m_pWindow, &count, extensions.data()));
+	return extensions;
 }
 
 SparEngine::Window::~Window()

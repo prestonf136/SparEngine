@@ -1,3 +1,6 @@
 [submodule "SparEngine/thirdparty/SDL"]
 	path = SparEngine/thirdparty/SDL
 	url = https://github.com/libsdl-org/SDL
+[submodule "SparEngine/thirdparty/vk-bootstrap"]
+	path = SparEngine/thirdparty/vk-bootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap
