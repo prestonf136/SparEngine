@@ -1,0 +1,3 @@
+[submodule "SparEngine/thirdparty/SDL"]
+	path = SparEngine/thirdparty/SDL
+	url = https://github.com/libsdl-org/SDL
