@@ -1,1 +1,1 @@
-# SparEngine
+![Spar Engine Logo](https://github.com/prestonf136/SparEngine/blob/main/logo.svg?raw=true)
