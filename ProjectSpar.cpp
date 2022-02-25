@@ -3,10 +3,10 @@
 
 #include "ProjectSpar.h"
 
-using namespace std;
-
 int main()
 {
-	cout << "Hello CMake." << endl;
+	auto gamewin = SparEngine::Window(640, 480, "My brand new app!");
+	SDL_Delay(3000);
+
 	return 0;
 }
