@@ -37,4 +37,16 @@ has access to required extensions and to create a vulkan surface
 
 This creates our renderer which we'll soon be able to command to draw.
 
-## 404 the rest of the guide is not found (coming soon!)
+### Cmake
+When using Cmake, simply add the Spar Engine folder as subdirectory:
+```cmake
+add_subdirectory("SparEngine")
+```
+
+and link with the SparEngine library.
+```cmake
+target_link_libraries([Your App Name] SparEngine::SparEngine)
+```
+
+---
+Happy Coding!

@@ -28,5 +28,6 @@ add_library(
 	"SparEngine.h"
 	"SparEngine.cpp"
 )
+add_library(SparEngine::SparEngine ALIAS SparEngine)
 
 target_link_libraries(SparEngine PUBLIC SparEngine_Window SparEngine_Renderer)
