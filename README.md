@@ -29,8 +29,11 @@ And that's it! That wasn't so hard was it?
 Now, we need to create an instance of our Renderer class, to you know... render.
 
 ```cpp
-SparEngine::Renderer renderer { /* We supply our game window here so our render has access to required extensions and to create a vulkan surface */ game_window };
+SparEngine::Renderer renderer { /* we supply the renderer with the game window */ game_window };
 ```
+
+The reason we supply our game window to our renderer is so that it 
+has access to required extensions and to create a vulkan surface 
 
 This creates our renderer which we'll soon be able to command to draw.
 
