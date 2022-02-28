@@ -1,7 +1,8 @@
+set (CMAKE_CXX_STANDARD 11)
+
 set( SDL_STATIC ON CACHE BOOL "" FORCE )
 set( SDL_SHARED OFF CACHE BOOL "" FORCE )
 add_subdirectory("thirdparty/SDL")
-add_subdirectory("thirdparty/vk-bootstrap")
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
@@ -17,11 +18,21 @@ add_library(
 	"Renderer/Renderer.cpp"
 )
 
+add_library(
+	SparEngine_RenderObject
+	"RenderObject/RenderObject.h"
+	"RenderObject/RenderObject.cpp"
+)
+
 target_include_directories (SparEngine_Window PUBLIC ${VULKAN_INCLUDE_DIRS})
-target_link_libraries(SparEngine_Window PUBLIC SDL2main SDL2-static ${VULKAN_LIB_LIST})
+target_link_libraries(SparEngine_Window PUBLIC SDL2main SDL2-static Vulkan::Vulkan)
+
+target_include_directories (SparEngine_RenderObject PUBLIC ${VULKAN_INCLUDE_DIRS})
+target_link_libraries(SparEngine_RenderObject PUBLIC Vulkan::Vulkan)
+
 
 target_include_directories (SparEngine_Renderer PUBLIC ${VULKAN_INCLUDE_DIRS})
-target_link_libraries(SparEngine_Renderer PUBLIC SparEngine_Window ${VULKAN_LIB_LIST} Vulkan::Vulkan vk-bootstrap::vk-bootstrap)
+target_link_libraries(SparEngine_Renderer PUBLIC SparEngine_Window Vulkan::Vulkan SparEngine_RenderObject)
 
 add_library(
 	SparEngine
