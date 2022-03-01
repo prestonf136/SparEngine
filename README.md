@@ -50,9 +50,6 @@ auto render_object = renderer.createRenderObject();
 
 We don't actually do anything with this, as it will take care of data itself once it's created.
 
-Now we don't use this renderer just yet, however it's good to have created it.
-we can finally start our window loop
-
 ```cpp
 game_window.loop();
 ```
@@ -63,6 +60,7 @@ Putting this all together
 try {
 	SparEngine::Window game_window { 640, 480, "Hello Spar Engine!" };
 	SparEngine::Renderer renderer { game_window };
+	auto render_object = renderer.createRenderObject();
 	
 	game_window.loop();
 } 
