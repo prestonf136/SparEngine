@@ -1,7 +1,7 @@
 # Spar Engine
 ![Spar Engine Logo](https://github.com/prestonf136/SparEngine/blob/main/logo.svg?raw=true)
 
-Spar Engine is a game engine designed to be usable, and dead simple, **(Don't waste time fighting your engine, focus on your code.)**, however
+Spar Engine is a  **C++11** game engine designed to be usable, and dead simple, **(Don't waste time fighting your engine, focus on your code.)**, however
 this engine also gives me the ability to learn about game engine architechture as well as allow me to learn more about writing an optimized
 vulkan renderer.
 
@@ -38,7 +38,17 @@ SparEngine::Renderer renderer { /* we supply the renderer with the game window *
 The reason we supply our game window to our renderer is so that it 
 has access to required extensions and to create a vulkan surface 
 
-This creates our renderer which we'll soon be able to command to draw.
+This creates our renderer which we'll soon be able to command to draw, we'll have to hold off on that, just yet, though.
+
+Since the engine is multithreaded, we'll have to create our render thread, this is nicely hidden away in the RenderObject class,
+However, this is not created the conventional way, instead, you use your renderer to create it, 
+(this ensures there's no funky buisness going around with out pointers)
+
+``` cpp
+auto render_object = renderer.createRenderObject();
+```
+
+We don't actually do anything with this, as it will take care of data itself once it's created.
 
 Now we don't use this renderer just yet, however it's good to have created it.
 we can finally start our window loop
