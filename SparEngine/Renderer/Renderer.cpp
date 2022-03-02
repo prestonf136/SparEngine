@@ -136,7 +136,7 @@ SparEngine::Renderer::Renderer(SparEngine::Window* _pWindow, bool _bDebug)
     VkSurfaceKHR surface;
 
     _pWindow->getSurface(instance, &surface);
-    m_Surface = vk::SurfaceKHR{ surface };
+    m_Surface = vk::UniqueSurfaceKHR{ surface };
 
     // Will have to use some form of algorithm to determine the best GPU to select, this will do for now.
     // Or allow the user to set it through a config file, that is left to the game engine interface.
@@ -150,22 +150,74 @@ SparEngine::Renderer::Renderer(SparEngine::Window* _pWindow, bool _bDebug)
     size_t graphicsQueueFamilyIndex = std::distance(queueFamilyProperties.begin(), graphicsQueueIterator);
     assert(graphicsQueueFamilyIndex < queueFamilyProperties.size());
 
+    
+    size_t presentQueueFamilyIndex = m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(graphicsQueueFamilyIndex), surface)
+        ? graphicsQueueFamilyIndex
+        : queueFamilyProperties.size();
+
+    if (presentQueueFamilyIndex == queueFamilyProperties.size())
+    {
+        for (size_t i = 0; i < queueFamilyProperties.size(); i++)
+        {
+            if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) &&
+                m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface))
+            {
+                graphicsQueueFamilyIndex = static_cast<uint32_t>(i);
+                presentQueueFamilyIndex = i;
+                break;
+            }
+        }
+        if (presentQueueFamilyIndex == queueFamilyProperties.size())
+        {
+            for (size_t i = 0; i < queueFamilyProperties.size(); i++)
+            {
+                if (m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface))
+                {
+                    presentQueueFamilyIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+    assert(graphicsQueueFamilyIndex != queueFamilyProperties.size()&& presentQueueFamilyIndex != queueFamilyProperties.size());
+
     float queuePriority = 0.0f;
-    vk::DeviceQueueCreateInfo deviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), static_cast<uint32_t>(graphicsQueueFamilyIndex), 1, &queuePriority);
-    m_Device = m_PhysicalDevice.createDeviceUnique(vk::DeviceCreateInfo(vk::DeviceCreateFlags(), deviceQueueCreateInfo));
-}
+    std::vector<vk::DeviceQueueCreateInfo> devQueueCreateInfos;
+    devQueueCreateInfos.push_back(
+        vk::DeviceQueueCreateInfo(
+            vk::DeviceQueueCreateFlags(),
+           static_cast<uint32_t> (graphicsQueueFamilyIndex), 1, &queuePriority)
+    );
+    
+    auto deviceCreateInfo = vk::DeviceCreateInfo();
+    deviceCreateInfo.setEnabledLayerCount(validationLayers.size());
+    deviceCreateInfo.setPEnabledLayerNames(validationLayers);
+    deviceCreateInfo.setQueueCreateInfos(devQueueCreateInfos);
+    deviceCreateInfo.setQueueCreateInfoCount(devQueueCreateInfos.size());
 
-std::shared_ptr<SparEngine::RenderObject> SparEngine::Renderer::createRenderObject()
-{
-    // We have no problem passing in raw pointers to the renderObjet as we know for a fact it won't outlive the renderer.
+    m_Device = m_PhysicalDevice.createDeviceUnique(deviceCreateInfo);
 
-    auto render_obj = std::make_shared<SparEngine::RenderObject>(
+    m_GraphicsQueue = m_Device.get().getQueue(graphicsQueueFamilyIndex, 0);
+    m_PresentQueue = m_Device.get().getQueue(presentQueueFamilyIndex, 0);
+
+    m_Data = SparEngine::RenderThreadData{
         &m_Instance,
         &m_PhysicalDevice,
         &m_Device,
+        &m_CommandPool,
         &m_Surface,
-        &m_CommandPool);
-    return render_obj;
+        nullptr,
+        &m_GraphicsQueue,
+        &m_PresentQueue,
+        static_cast<uint32_t>(graphicsQueueFamilyIndex),
+        static_cast<uint32_t>(presentQueueFamilyIndex),
+    };
+}
+
+std::shared_ptr<SparEngine::RenderThread> SparEngine::Renderer::createRenderObject(int32_t _iWidth, int32_t _iHeight)
+{
+    // We have no problem passing in raw pointers to RenderThread as we know for a fact it won't outlive the renderer.
+    return std::make_shared<SparEngine::RenderThread>(m_Data);
 }
 
 SparEngine::Renderer::~Renderer() {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Window/Window.h"
-#include "../RenderObject/RenderObject.h"
+#include "../RenderThread/RenderThread.h"
 #include <vulkan/vulkan.hpp>
 
 namespace SparEngine {
@@ -12,10 +12,14 @@ namespace SparEngine {
 		vk::PhysicalDevice m_PhysicalDevice;
 		vk::UniqueDevice m_Device;
 		vk::UniqueCommandPool m_CommandPool;
-		vk::SurfaceKHR m_Surface;
+		vk::UniqueSurfaceKHR m_Surface;
+		vk::Queue m_GraphicsQueue;
+		vk::Queue m_PresentQueue;
+
+		RenderThreadData m_Data;
 	public:
 		Renderer(SparEngine::Window* _pWindow, bool _bDebug);
-		std::shared_ptr<RenderObject> createRenderObject();
+		std::shared_ptr<RenderThread> createRenderObject(int32_t _iWidth, int32_t _iHeight);
 		~Renderer();
 	};
 }

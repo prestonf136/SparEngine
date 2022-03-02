@@ -19,20 +19,20 @@ add_library(
 )
 
 add_library(
-	SparEngine_RenderObject
-	"RenderObject/RenderObject.h"
-	"RenderObject/RenderObject.cpp"
+	SparEngine_RenderThread
+	"RenderThread/RenderThread.h"
+	"RenderThread/RenderThread.cpp"
 )
 
 target_include_directories (SparEngine_Window PUBLIC ${VULKAN_INCLUDE_DIRS})
 target_link_libraries(SparEngine_Window PUBLIC SDL2main SDL2-static Vulkan::Vulkan)
 
-target_include_directories (SparEngine_RenderObject PUBLIC ${VULKAN_INCLUDE_DIRS})
-target_link_libraries(SparEngine_RenderObject PUBLIC Vulkan::Vulkan)
+target_include_directories (SparEngine_RenderThread PUBLIC ${VULKAN_INCLUDE_DIRS})
+target_link_libraries(SparEngine_RenderThread PUBLIC Vulkan::Vulkan)
 
 
 target_include_directories (SparEngine_Renderer PUBLIC ${VULKAN_INCLUDE_DIRS})
-target_link_libraries(SparEngine_Renderer PUBLIC SparEngine_Window Vulkan::Vulkan SparEngine_RenderObject)
+target_link_libraries(SparEngine_Renderer PUBLIC SparEngine_Window Vulkan::Vulkan SparEngine_RenderThread)
 
 add_library(
 	SparEngine
