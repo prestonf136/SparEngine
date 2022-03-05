@@ -2,13 +2,14 @@
 //
 
 #include "ProjectSpar.h"
+#include <filesystem>
 
 int main()
 {
-	auto gamewin = SparEngine::Window(640, 480, "My brand new app!");
-	SparEngine::Renderer renderer{ &gamewin, true };
-	auto render_object = renderer.createRenderObject();
-	gamewin.loop();
+	auto win = SparEngine::Window(640, 480, "Hello Spar Engine!");
+	auto renderer = SparEngine::Renderer(win, true);
+
+	win.loop();
 
 	return 0;
 }

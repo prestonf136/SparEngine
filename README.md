@@ -14,7 +14,7 @@ This engine puts low spec devices at the top of it's priority, which influence i
  - [ ] Work on render Class
 
 ### Getting Started
-
+#### WARNING: Temporarily N/A as rewrite is yet to be complete.
 To get started using Spar Engine we'll start by including it.
 ```cpp
 #include "SparEngine/SparEngine.h"

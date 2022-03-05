@@ -1,224 +1,162 @@
 #include "Renderer.h"
 #include <iostream>
 
-PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
-PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
+#define VK_CHECK(eval)													\
+	{																	 \
+		VkResult res = eval;											  \
+		if(res != VK_SUCCESS)  {										   \
+			std::cout << "Error Encounterd, Of Type: " << res << std::endl; \
+			abort();														 \
+		}																	  \
+	} 
 
-VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator,
-    VkDebugUtilsMessengerEXT* pMessenger)
-{
-    return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData) {
+
+	std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+	return VK_FALSE;
 }
 
-VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
-{
-    return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+									  const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+									  const VkAllocationCallbacks* pAllocator,
+									  VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	if (func != nullptr) {
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+	}
+	else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* /*pUserData*/)
-{
-    std::ostringstream message;
-
-    message << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << ": "
-        << vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << ":\n";
-    message << "\t"
-        << "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
-    message << "\t"
-        << "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
-    message << "\t"
-        << "message         = <" << pCallbackData->pMessage << ">\n";
-    if (0 < pCallbackData->queueLabelCount)
-    {
-        message << "\t"
-            << "Queue Labels:\n";
-        for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
-        {
-            message << "\t\t"
-                << "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
-        }
-    }
-    if (0 < pCallbackData->cmdBufLabelCount)
-    {
-        message << "\t"
-            << "CommandBuffer Labels:\n";
-        for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
-        {
-            message << "\t\t"
-                << "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
-        }
-    }
-    if (0 < pCallbackData->objectCount)
-    {
-        message << "\t"
-            << "Objects:\n";
-        for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
-        {
-            message << "\t\t"
-                << "Object " << i << "\n";
-            message << "\t\t\t"
-                << "objectType   = " << vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType)) << "\n";
-            message << "\t\t\t"
-                << "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
-            if (pCallbackData->pObjects[i].pObjectName)
-            {
-                message << "\t\t\t"
-                    << "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
-            }
-        }
-    }
-
-    std::cout << message.str() << std::endl;
-    return false;
+void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+								   VkDebugUtilsMessengerEXT debugMessenger,
+								   const VkAllocationCallbacks* pAllocator) {
+	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != nullptr) {
+		func(instance, debugMessenger, pAllocator);
+	}
 }
 
-SparEngine::Renderer::Renderer(SparEngine::Window* _pWindow, bool _bDebug)
-{
-    std::vector<const char*> validationLayers;
-    if (_bDebug)
-        validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+SparEngine::Renderer::Renderer(Window& _win, bool _debug) : m_Debug{ _debug } {
+	VkApplicationInfo AppInfo;
+	AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	AppInfo.apiVersion = VK_API_VERSION_1_0;
+	AppInfo.applicationVersion = VK_MAKE_API_VERSION(1, 1, 0, 0);
+	AppInfo.pApplicationName = _win.getName().c_str();
+	AppInfo.engineVersion = VK_MAKE_API_VERSION(1, 1, 0, 0);
+	AppInfo.pEngineName = "Spar Engine";
 
-    std::vector<const char*> extNames = _pWindow->getRequiredExtensions();
+	VkInstanceCreateInfo InstanceCreateInfo{};
+	InstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	InstanceCreateInfo.pApplicationInfo = &AppInfo;
 
-    if (_bDebug) {
-        std::vector<vk::LayerProperties> layer_props = vk::enumerateInstanceLayerProperties();
-        std::vector<vk::ExtensionProperties> ext_props = vk::enumerateInstanceExtensionProperties();
+	auto exts = _win.getRequiredExtensions();
+	exts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-        auto extpropertyIterator = std::find_if(
-            ext_props.begin(), ext_props.end(), [](vk::ExtensionProperties const& ep) { return strcmp(ep.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0; });
+	InstanceCreateInfo.enabledExtensionCount = exts.size();
+	InstanceCreateInfo.ppEnabledExtensionNames = exts.data();
+	
+	VkDebugUtilsMessengerCreateInfoEXT m_DebugMessengerCreateInfo{};
+	m_DebugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	m_DebugMessengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+	m_DebugMessengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	m_DebugMessengerCreateInfo.pfnUserCallback = debugCallback;
 
-        assert(extpropertyIterator != ext_props.end());
 
-        auto layerpropertyIterator = std::find_if(
-            layer_props.begin(), layer_props.end(), [](vk::LayerProperties const& ep) { return strcmp(ep.layerName, "VK_LAYER_KHRONOS_validation") == 0; });
+	std::vector<const char*> validationLayers;
+	if (_debug) {
+		validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+		InstanceCreateInfo.pNext = &m_DebugMessengerCreateInfo;
+	};
 
-        assert(layerpropertyIterator != layer_props.end());
+	InstanceCreateInfo.enabledLayerCount = validationLayers.size();
+	InstanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 
-        extNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+	VK_CHECK(vkCreateInstance(&InstanceCreateInfo, nullptr, &m_Instance));
+	if(m_Debug)
+		VK_CHECK(CreateDebugUtilsMessengerEXT(m_Instance, &m_DebugMessengerCreateInfo, nullptr, &m_DebugMessenger));
 
-    vk::ApplicationInfo applicationInfo {};
-    applicationInfo.setPApplicationName(_pWindow->getName().c_str());
-    applicationInfo.setPEngineName("Spar Engine");
-    applicationInfo.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0));
-    applicationInfo.setEngineVersion(VK_MAKE_VERSION(1,0,0));
-    applicationInfo.setApiVersion(VK_API_VERSION_1_2);
-  
-    vk::InstanceCreateInfo instanceCreateInfo {};
-    instanceCreateInfo.setPApplicationInfo(&applicationInfo);
-    instanceCreateInfo.setEnabledExtensionCount(extNames.size());
-    instanceCreateInfo.setPEnabledExtensionNames(extNames);
-    instanceCreateInfo.setEnabledLayerCount(validationLayers.size());
-    instanceCreateInfo.setPEnabledLayerNames(validationLayers);
+	_win.getSurface(m_Instance, &m_Surface);
 
-    m_Instance = vk::createInstanceUnique(instanceCreateInfo);
+	uint32_t gpuCount = 0;
+	VK_CHECK(vkEnumeratePhysicalDevices(m_Instance, &gpuCount, nullptr));
 
-    if (_bDebug) {
-        pfnVkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(m_Instance.get().getProcAddr("vkCreateDebugUtilsMessengerEXT"));
-        assert(pfnVkCreateDebugUtilsMessengerEXT);
+	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+	VK_CHECK(vkEnumeratePhysicalDevices(m_Instance, &gpuCount, physicalDevices.data()));
 
-        pfnVkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(m_Instance.get().getProcAddr("vkDestroyDebugUtilsMessengerEXT"));
-        assert(pfnVkDestroyDebugUtilsMessengerEXT);
+	assert(gpuCount > 0);
 
-        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
-        auto debugUtilsCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT({}, severityFlags, messageTypeFlags, &debugMessageFunc);
+	bool systemHasDiscrete = false;
+	VkPhysicalDevice selectedDev;
+	for (auto device : physicalDevices) {
+		VkPhysicalDeviceProperties props;
+		vkGetPhysicalDeviceProperties(device, &props);
 
-        m_DebugUtilsMessenger = m_Instance.get().createDebugUtilsMessengerEXTUnique(debugUtilsCreateInfo);
-    }
+		if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			systemHasDiscrete = true;
+			selectedDev = device;
+		}
+	}
 
-    auto instance = static_cast<VkInstance>(m_Instance.get());
-    VkSurfaceKHR surface;
+	if (!systemHasDiscrete)
+		selectedDev = physicalDevices[0];
 
-    _pWindow->getSurface(instance, &surface);
-    m_Surface = vk::UniqueSurfaceKHR{ surface };
+	m_PhysicalDevice = selectedDev;
 
-    // Will have to use some form of algorithm to determine the best GPU to select, this will do for now.
-    // Or allow the user to set it through a config file, that is left to the game engine interface.
-    m_PhysicalDevice = m_Instance.get().enumeratePhysicalDevices().front();
+	uint32_t queueFamilyCount;
+	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> familyProps(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, familyProps.data());
 
-    auto queueFamilyProperties = m_PhysicalDevice.getQueueFamilyProperties();
-    auto graphicsQueueIterator = std::find_if(queueFamilyProperties.begin(),
-        queueFamilyProperties.end(),
-        [](vk::QueueFamilyProperties const& qfp) { return qfp.queueFlags & vk::QueueFlagBits::eGraphics; });
+	uint32_t graphicsQueueFamilyIndex;
+	
+	bool queuFamilyFound = false;
+	for (uint32_t i = 0; i < queueFamilyCount; i++) {
+		if (familyProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			graphicsQueueFamilyIndex = i;
+			queuFamilyFound = true;
+			break;
+		}
+	}
 
-    size_t graphicsQueueFamilyIndex = std::distance(queueFamilyProperties.begin(), graphicsQueueIterator);
-    assert(graphicsQueueFamilyIndex < queueFamilyProperties.size());
+	float queuePriorities =  0.0;
+	VkDeviceQueueCreateInfo QueueCreateInfo;
+	QueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	QueueCreateInfo.pNext = nullptr;
+	QueueCreateInfo.queueCount = 1;
+	QueueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+	QueueCreateInfo.pQueuePriorities = &queuePriorities;
 
-    
-    size_t presentQueueFamilyIndex = m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(graphicsQueueFamilyIndex), surface)
-        ? graphicsQueueFamilyIndex
-        : queueFamilyProperties.size();
+	VkDeviceCreateInfo DeviceCreateInfo;
+	DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	DeviceCreateInfo.pNext = nullptr;
+	DeviceCreateInfo.queueCreateInfoCount = 1;
+	DeviceCreateInfo.pQueueCreateInfos = &QueueCreateInfo;
+	DeviceCreateInfo.enabledExtensionCount = 0;
+	DeviceCreateInfo.ppEnabledExtensionNames = nullptr;
+	DeviceCreateInfo.enabledLayerCount = 0;
+	DeviceCreateInfo.ppEnabledLayerNames = nullptr;
+	DeviceCreateInfo.pEnabledFeatures = nullptr;
 
-    if (presentQueueFamilyIndex == queueFamilyProperties.size())
-    {
-        for (size_t i = 0; i < queueFamilyProperties.size(); i++)
-        {
-            if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) &&
-                m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface))
-            {
-                graphicsQueueFamilyIndex = static_cast<uint32_t>(i);
-                presentQueueFamilyIndex = i;
-                break;
-            }
-        }
-        if (presentQueueFamilyIndex == queueFamilyProperties.size())
-        {
-            for (size_t i = 0; i < queueFamilyProperties.size(); i++)
-            {
-                if (m_PhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface))
-                {
-                    presentQueueFamilyIndex = i;
-                    break;
-                }
-            }
-        }
-    }
-    assert(graphicsQueueFamilyIndex != queueFamilyProperties.size()&& presentQueueFamilyIndex != queueFamilyProperties.size());
+	VK_CHECK(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_Device));
 
-    float queuePriority = 0.0f;
-    std::vector<vk::DeviceQueueCreateInfo> devQueueCreateInfos;
-    devQueueCreateInfos.push_back(
-        vk::DeviceQueueCreateInfo(
-            vk::DeviceQueueCreateFlags(),
-           static_cast<uint32_t> (graphicsQueueFamilyIndex), 1, &queuePriority)
-    );
-    
-    auto deviceCreateInfo = vk::DeviceCreateInfo();
-    deviceCreateInfo.setEnabledLayerCount(validationLayers.size());
-    deviceCreateInfo.setPEnabledLayerNames(validationLayers);
-    deviceCreateInfo.setQueueCreateInfos(devQueueCreateInfos);
-    deviceCreateInfo.setQueueCreateInfoCount(devQueueCreateInfos.size());
-
-    m_Device = m_PhysicalDevice.createDeviceUnique(deviceCreateInfo);
-
-    m_GraphicsQueue = m_Device.get().getQueue(graphicsQueueFamilyIndex, 0);
-    m_PresentQueue = m_Device.get().getQueue(presentQueueFamilyIndex, 0);
-
-    m_Data = SparEngine::RenderThreadData{
-        &m_Instance,
-        &m_PhysicalDevice,
-        &m_Device,
-        &m_CommandPool,
-        &m_Surface,
-        nullptr,
-        &m_GraphicsQueue,
-        &m_PresentQueue,
-        static_cast<uint32_t>(graphicsQueueFamilyIndex),
-        static_cast<uint32_t>(presentQueueFamilyIndex),
-    };
-}
-
-std::shared_ptr<SparEngine::RenderThread> SparEngine::Renderer::createRenderObject(int32_t _iWidth, int32_t _iHeight)
-{
-    // We have no problem passing in raw pointers to RenderThread as we know for a fact it won't outlive the renderer.
-    return std::make_shared<SparEngine::RenderThread>(m_Data);
-}
+	VkCommandPoolCreateInfo CmdPoolCreateInfo;
+	CmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	CmdPoolCreateInfo.pNext = nullptr;
+	CmdPoolCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+	CmdPoolCreateInfo.flags = 0;
+	
+	VK_CHECK(vkCreateCommandPool(m_Device, &CmdPoolCreateInfo, nullptr, &m_CommandPool));
+};
 
 SparEngine::Renderer::~Renderer() {
+	if (m_Debug)
+		DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+	vkDestroyInstance(m_Instance, nullptr);
 }

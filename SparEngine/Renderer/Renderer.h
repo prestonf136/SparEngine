@@ -2,24 +2,23 @@
 
 #include "../Window/Window.h"
 #include "../RenderThread/RenderThread.h"
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
+
+#define SPAR_PATCH_NUM VK_MAKE_API_VERSION(0, 0, 0, 1)
 
 namespace SparEngine {
-	class Renderer {
+	class Renderer{
 	private:
-		vk::UniqueInstance m_Instance;
-		vk::UniqueDebugUtilsMessengerEXT m_DebugUtilsMessenger;
-		vk::PhysicalDevice m_PhysicalDevice;
-		vk::UniqueDevice m_Device;
-		vk::UniqueCommandPool m_CommandPool;
-		vk::UniqueSurfaceKHR m_Surface;
-		vk::Queue m_GraphicsQueue;
-		vk::Queue m_PresentQueue;
+		VkInstance m_Instance;
+		VkDebugUtilsMessengerEXT m_DebugMessenger;
+		VkPhysicalDevice m_PhysicalDevice;
+		VkSurfaceKHR m_Surface;
+		VkDevice m_Device;
+		VkCommandPool m_CommandPool;
 
-		RenderThreadData m_Data;
+		bool m_Debug;
 	public:
-		Renderer(SparEngine::Window* _pWindow, bool _bDebug);
-		std::shared_ptr<RenderThread> createRenderObject(int32_t _iWidth, int32_t _iHeight);
+		Renderer(Window& _win, bool _debug);
 		~Renderer();
 	};
 }
